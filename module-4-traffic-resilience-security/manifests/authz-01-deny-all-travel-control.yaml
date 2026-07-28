@@ -1,0 +1,10 @@
+# Same default-deny for travel-control, applied here for the Module 4 walkthrough
+# (GitOps doesn't exist yet at this point in the lab). From Module 5 onward, this
+# exact resource is owned by the travel-control Helm chart's own ap-allow-nothing.yaml
+# template — this file is excluded from Module 5's GitOps Application for that reason.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: travel-control
+spec: {}

@@ -1,0 +1,116 @@
+# Canary v2 instance #1 of cars-vm. Same demo_travels_cars:v1 image (the "v2" here refers
+# to the app's own release/version label, not a different container build) but registered
+# in the mesh with version=v2 so traffic-splitting rules (cars-vs.yaml) can target it.
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: cars-vm-v2-a
+  namespace: travel-agency
+  labels:
+    module: m4
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: fedora-cars-v2-a
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: fedora
+        vm.kubevirt.io/workload: server
+        sidecar.istio.io/inject: 'true'
+      labels:
+        kubevirt.io/domain: cars-vm
+        kubevirt.io/size: small
+        app: cars-vm
+        version: v2
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - masquerade: {}
+              name: default
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.4.0
+        memory:
+          guest: 2Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      volumes:
+        - dataVolume:
+            name: fedora-cars-v2-a
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              user: fedora
+              password: redhat
+              chpasswd: { expire: False }
+              ssh_pwauth: true
+              runcmd:
+              - loginctl enable-linger fedora
+              - su - fedora -c 'XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user daemon-reload'
+              - su - fedora -c 'XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user start cars.service'
+              write_files:
+              - content: |
+                  [Unit]
+                  Description=Fedora Cars Container
+
+                  [Container]
+                  Label=app=cars-container
+                  ContainerName=cars-container
+                  Image=quay.io/kiali/demo_travels_cars:v1
+                  Environment=CURRENT_SERVICE='cars'
+                  Environment=CURRENT_VERSION='v2'
+                  Environment=LISTEN_ADDRESS=':8000'
+                  Environment=MYSQL_SERVICE='mysqldb-vm.travel-agency.svc.cluster.local:3306'
+                  Environment=MYSQL_USER='root'
+                  Environment=MYSQL_PASSWORD='mysqldbpass'
+                  Environment=DISCOUNTS_SERVICE='http://discounts-vm.travel-agency.svc.cluster.local:8000'
+                  Environment=MYSQL_DATABASE='test'
+                  PodmanArgs=-p 8000:8000
+
+                  [Install]
+                  WantedBy=multi-user.target default.target
+
+                  [Service]
+                  Restart=always
+                path: /etc/containers/systemd/users/cars.container
+                permissions: '0777'
+                owner: root:root
+          name: cloudinitdisk

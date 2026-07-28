@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: travel-control
+  labels:
+    module: m5
+  annotations:
+    openshift.io/description: "Travel Control Namespace"
+    openshift.io/display-name: "Travel Control Namespace"
+    argocd.argoproj.io/sync-wave: "1"

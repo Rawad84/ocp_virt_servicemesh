@@ -1,0 +1,29 @@
+# The one resource you apply by hand. Everything else in gitops/apps/ is created
+# automatically by ArgoCD once it starts reconciling this Application (the
+# "app of apps" pattern) — it treats this directory itself as a source of more
+# Application resources.
+#
+# Before applying: replace <GIT_REPO_URL> in every file in this directory with the
+# URL of wherever you've pushed this repo — ArgoCD pulls from git, it can't read
+# this local working copy. e.g.:
+#   sed -i "s#<GIT_REPO_URL>#https://github.com/you/virt-ossm-lab.git#" module-5-gitops/gitops/apps/*.yaml module-5-gitops/gitops/apps/../*.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: virt-ossm-lab-root
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: <GIT_REPO_URL>
+    targetRevision: HEAD
+    path: module-5-gitops/gitops/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-gitops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

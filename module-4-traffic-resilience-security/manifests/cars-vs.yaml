@@ -1,0 +1,26 @@
+# Static, committed steady-state for the canary split (80% v2 — the endpoint Module 4's
+# walkthrough progresses to via set-cars-canary-weights.sh 20 80). GitOps (Module 5) syncs
+# this file as the desired state; use the script directly only for the live, manual
+# walkthrough of *changing* the split during Module 4.
+kind: VirtualService
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: cars
+  namespace: travel-agency
+  labels:
+    module: m4
+spec:
+  hosts:
+    - cars-vm.travel-agency.svc.cluster.local
+  gateways:
+    - mesh
+  http:
+    - route:
+        - destination:
+            host: cars-vm.travel-agency.svc.cluster.local
+            subset: v1
+          weight: 20
+        - destination:
+            host: cars-vm.travel-agency.svc.cluster.local
+            subset: v2
+          weight: 80

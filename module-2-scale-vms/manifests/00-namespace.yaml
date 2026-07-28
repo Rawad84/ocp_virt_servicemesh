@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: travel-control
+  annotations:
+    openshift.io/description: "Travel Control domain — business dashboard, running as a VM"
+    openshift.io/display-name: "Travel Control"

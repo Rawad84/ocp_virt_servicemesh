@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: travel-agency-networking
+  namespace: openshift-gitops
+  labels:
+    module: m5
+spec:
+  project: default
+  source:
+    repoURL: <GIT_REPO_URL>
+    targetRevision: HEAD
+    path: module-1-explore-vms/manifests
+    directory:
+      recurse: true
+      # cars-block-egress-policy.yaml is Module 1's Task 5 *demo* resource — it blocks
+      # all egress from cars-vm, which would permanently break cars-vm's calls to
+      # discounts-vm/mysqldb-vm if GitOps kept it self-healed. Excluded from steady state.
+      exclude: cars-block-egress-policy.yaml
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

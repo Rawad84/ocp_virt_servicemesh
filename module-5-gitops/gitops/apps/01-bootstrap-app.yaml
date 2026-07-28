@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: travel-agency-bootstrap
+  namespace: openshift-gitops
+  labels:
+    module: m5
+spec:
+  project: default
+  source:
+    repoURL: <GIT_REPO_URL>
+    targetRevision: HEAD
+    path: module-0-bootstrap
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

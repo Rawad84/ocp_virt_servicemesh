@@ -1,0 +1,7 @@
+# Default values for travel-control.
+
+# Hostname of the Service Mesh ingress gateway Route/host — same value used with
+# module-4-traffic-resilience-security/manifests/expose-control-vm.sh
+# (istio-ingressgateway-istio-system.<your-cluster-apps-domain>). Override this at
+# Application-creation time — see module-5-gitops/README.md Task 2.
+ossm_ingress: istio-ingressgateway-istio-system.CHANGEME.apps.example.com

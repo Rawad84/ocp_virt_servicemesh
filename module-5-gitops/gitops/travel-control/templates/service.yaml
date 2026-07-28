@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: control-vm
+  namespace: travel-control
+  labels:
+    module: m5
+    app: control-vm
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  ports:
+    - port: 8080
+      name: http
+  selector:
+    kubevirt.io/domain: control-vm

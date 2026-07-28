@@ -1,0 +1,34 @@
+# The one hands-on GitOps task from the official lab: travel-control becomes fully
+# Helm-chart + ArgoCD managed here, superseding the imperative resources Module 2
+# created directly (control-vm, control-svc, control-route) and the travel-control-scoped
+# policies from Module 3 (ServiceMeshMember) and Module 4 (AuthorizationPolicies) —
+# this chart bundles all of that into one deployable, self-healing unit.
+#
+# Set `ossm_ingress` to the same Service Mesh ingress hostname used in Module 4's
+# expose-control-vm.sh (istio-ingressgateway-istio-system.<your-cluster-apps-domain>).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: travel-control
+  namespace: openshift-gitops
+  labels:
+    module: m5
+spec:
+  project: default
+  source:
+    repoURL: <GIT_REPO_URL>
+    targetRevision: HEAD
+    path: module-5-gitops/gitops/travel-control
+    helm:
+      parameters:
+        - name: ossm_ingress
+          value: istio-ingressgateway-istio-system.CHANGEME.apps.example.com
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    # Left on manual sync + no self-heal by default, matching the official lab's Task 2
+    # (creates the app with sync policy "Manual"), so you can walk through Task 3's
+    # self-heal demo deliberately rather than having it already enabled. Enable both via
+    # `oc patch` (see module-5-gitops/README.md Task 3) once you're ready for that step.
+    syncOptions:
+      - CreateNamespace=true

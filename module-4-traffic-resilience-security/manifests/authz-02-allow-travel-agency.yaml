@@ -1,0 +1,27 @@
+# Allows: istio-ingressgateway -> anything it routes to (global, shared rule); and
+# travel-portal + travel-agency -> travel-agency services.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: authpolicy-istio-ingressgateway
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+  rules:
+    - to:
+        - operation:
+            paths: ["*"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-selective-principals-travel-agency
+  namespace: travel-agency
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/travel-agency/sa/default", "cluster.local/ns/travel-portal/sa/default"]

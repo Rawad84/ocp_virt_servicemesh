@@ -1,0 +1,6 @@
+apiVersion: v2
+name: travel-control
+description: GitOps-managed deployment of the travel-control business dashboard (VM, Service, Route, Service Mesh membership, traffic/security policy)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

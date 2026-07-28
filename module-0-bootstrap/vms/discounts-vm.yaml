@@ -1,0 +1,107 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: discounts-vm
+  namespace: travel-agency
+  labels:
+    app: discounts-vm
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: fedora-discounts
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: fedora
+        vm.kubevirt.io/workload: server
+      labels:
+        kubevirt.io/domain: discounts-vm
+        kubevirt.io/size: small
+        app: discounts-vm
+        version: v1
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - masquerade: {}
+              name: default
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.4.0
+        memory:
+          guest: 2Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      volumes:
+        - dataVolume:
+            name: fedora-discounts
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              user: fedora
+              password: redhat
+              chpasswd: { expire: False }
+              ssh_pwauth: true
+              runcmd:
+              - loginctl enable-linger fedora
+              - su - fedora -c 'XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user daemon-reload'
+              - su - fedora -c 'XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user start discounts.service'
+              write_files:
+              - content: |
+                  [Unit]
+                  Description=Fedora Discounts Container
+
+                  [Container]
+                  Label=app=discounts-container
+                  ContainerName=discounts-container
+                  Image=quay.io/kiali/demo_travels_discounts:v1
+                  Environment=CURRENT_SERVICE='discounts'
+                  Environment=CURRENT_VERSION='v1'
+                  Environment=LISTEN_ADDRESS=':8000'
+                  PodmanArgs=-p 8000:8000
+
+                  [Install]
+                  WantedBy=multi-user.target default.target
+
+                  [Service]
+                  Restart=always
+                path: /etc/containers/systemd/users/discounts.container
+                permissions: '0777'
+                owner: root:root
+          name: cloudinitdisk

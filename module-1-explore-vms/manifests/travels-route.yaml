@@ -1,0 +1,12 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: travels-vm
+  namespace: travel-agency
+spec:
+  to:
+    kind: Service
+    name: travels-vm
+    weight: 100
+  port:
+    targetPort: http

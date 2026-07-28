@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: travel-agency-service-mesh
+  namespace: openshift-gitops
+  labels:
+    module: m5
+spec:
+  project: default
+  source:
+    repoURL: <GIT_REPO_URL>
+    targetRevision: HEAD
+    path: module-3-service-mesh-observability/manifests
+    directory:
+      recurse: true
+      # .sh scripts here (add-envoy-to-*.sh) are one-time imperative helpers used during
+      # Module 3's walkthrough, not declarative desired state — ArgoCD's directory source
+      # only picks up *.yaml/*.yml/*.json anyway, so no explicit exclude is needed for them.
+      #
+      # NOTE: servicemeshmember.yaml here includes a ServiceMeshMember for travel-control,
+      # which module-5-gitops/gitops/travel-control's Helm chart also declares (same name/
+      # namespace/spec). Harmless in practice since the content is identical, but it means
+      # two Applications both "own" that one resource — a known, documented overlap rather
+      # than a fully clean partition.
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

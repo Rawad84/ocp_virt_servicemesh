@@ -1,0 +1,10 @@
+kind: AuthorizationPolicy
+apiVersion: security.istio.io/v1beta1
+metadata:
+  name: allow-nothing
+  namespace: travel-control
+  labels:
+    module: m5
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec: {}

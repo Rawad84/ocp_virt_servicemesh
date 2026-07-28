@@ -1,0 +1,15 @@
+kind: DestinationRule
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: control
+  namespace: travel-control
+  labels:
+    module: m5
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  host: control-vm.travel-control.svc.cluster.local
+  subsets:
+    - labels:
+        version: v1
+      name: v1

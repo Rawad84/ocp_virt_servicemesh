@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: travel-agency-traffic-resilience
+  namespace: openshift-gitops
+  labels:
+    module: m5
+spec:
+  project: default
+  source:
+    repoURL: <GIT_REPO_URL>
+    targetRevision: HEAD
+    path: module-4-traffic-resilience-security/manifests
+    directory:
+      recurse: true
+      exclude: "{cars-dr.yaml,authz-01-deny-all-travel-control.yaml,authz-02-allow-travel-control.yaml}"
+      # cars-dr.yaml: superseded by cars-dr-circuit-breaker.yaml (same DestinationRule,
+      #   evolved with a circuit breaker — the two aren't meant to coexist).
+      # authz-*-travel-control.yaml: re-declared by the travel-control Helm chart
+      #   (module-5-gitops/gitops/travel-control) — owned there in steady state.
+      #
+      # NOT included here: the control-gateway Gateway that
+      # module-4-traffic-resilience-security/manifests/expose-control-vm.sh creates in
+      # istio-system. That's shared platform ingress infra, applied once, imperatively,
+      # outside GitOps — see module-5-gitops/README.md.
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

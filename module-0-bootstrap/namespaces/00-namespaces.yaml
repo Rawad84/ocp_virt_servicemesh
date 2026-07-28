@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: travel-agency
+  annotations:
+    openshift.io/description: "Travel Agency domain — backend quote services, running as VMs"
+    openshift.io/display-name: "Travel Agency"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: travel-portal
+  annotations:
+    openshift.io/description: "Travel Portal domain — customer-facing shops, running as containers"
+    openshift.io/display-name: "Travel Portal"

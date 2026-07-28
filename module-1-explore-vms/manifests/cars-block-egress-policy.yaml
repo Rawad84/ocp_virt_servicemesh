@@ -1,0 +1,13 @@
+# Optional Task 5 demo: blocks all egress from cars-vm to prove NetworkPolicy applies to
+# VM pods just like any other pod. Apply, test, then `oc delete -f` this file to clean up.
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: noegress
+  namespace: travel-agency
+spec:
+  podSelector:
+    matchLabels:
+      kubevirt.io/domain: cars-vm
+  policyTypes:
+    - Egress

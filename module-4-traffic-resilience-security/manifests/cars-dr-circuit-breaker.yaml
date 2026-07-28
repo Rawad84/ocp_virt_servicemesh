@@ -1,0 +1,30 @@
+# Same DestinationRule as cars-dr.yaml, with a circuit breaker added to the v2 subset:
+# ejects an endpoint for 3 minutes after 1 consecutive 5xx error.
+kind: DestinationRule
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: cars
+  namespace: travel-agency
+  labels:
+    module: m4
+spec:
+  host: cars-vm.travel-agency.svc.cluster.local
+  subsets:
+    - labels:
+        version: v1
+      name: v1
+    - labels:
+        version: v2
+      name: v2
+      trafficPolicy:
+        connectionPool:
+          http:
+            http1MaxPendingRequests: 1
+            maxRequestsPerConnection: 1
+          tcp:
+            maxConnections: 1
+        outlierDetection:
+          baseEjectionTime: 3m
+          consecutive5xxErrors: 1
+          interval: 1s
+          maxEjectionPercent: 100

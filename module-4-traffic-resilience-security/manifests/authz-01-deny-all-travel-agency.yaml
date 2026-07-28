@@ -1,0 +1,8 @@
+# Default-deny (best practice): an empty spec denies all traffic in the namespace
+# until an explicit ALLOW policy (authz-02-allow-travel-agency.yaml) is applied.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: travel-agency
+spec: {}
