@@ -1,6 +1,6 @@
 # Allows: istio-ingressgateway -> anything it routes to (global, shared rule); and
 # travel-portal + travel-agency -> travel-agency services.
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: authpolicy-istio-ingressgateway
@@ -14,7 +14,7 @@ spec:
         - operation:
             paths: ["*"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-selective-principals-travel-agency

@@ -1,0 +1,11 @@
+# A PeerAuthentication named "default" in the mesh's root namespace (istio-system) applies
+# mesh-wide. Replaces the STRICT mTLS behavior the classic ServiceMeshControlPlane gave by
+# default -- OSSM 3.x/Sail defaults to PERMISSIVE unless a PeerAuthentication says otherwise.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT

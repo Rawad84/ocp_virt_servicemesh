@@ -17,11 +17,11 @@ spec:
       # Module 3's walkthrough, not declarative desired state — ArgoCD's directory source
       # only picks up *.yaml/*.yml/*.json anyway, so no explicit exclude is needed for them.
       #
-      # NOTE: servicemeshmember.yaml here includes a ServiceMeshMember for travel-control,
-      # which module-5-gitops/gitops/travel-control's Helm chart also declares (same name/
-      # namespace/spec). Harmless in practice since the content is identical, but it means
-      # two Applications both "own" that one resource — a known, documented overlap rather
-      # than a fully clean partition.
+      # NOTE: module-3-service-mesh-observability/manifests/ has no membership CR to sync
+      # (OSSM 3.4's Sail Operator has no ServiceMeshMember equivalent — mesh membership is
+      # cluster-wide by default, injection is controlled per-workload). This Application
+      # currently has nothing to manage; kept for structural symmetry with the other modules
+      # in case future mesh-scoped config (e.g. a Sidecar resource) lands here.
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:

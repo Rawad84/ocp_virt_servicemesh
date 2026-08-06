@@ -1,0 +1,28 @@
+# OpenTelemetryCollector receiving OTLP from the mesh's Envoy sidecars and exporting to Tempo
+# (26-tempo.yaml). The exporter endpoint assumes the Service name TempoMonolithic creates for
+# its OTLP gRPC receiver -- confirm the exact Service name/port against the live cluster
+# (`oc get svc -n istio-system -l app.kubernetes.io/instance=tempo`) before relying on traces
+# flowing end to end.
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: istio-system
+spec:
+  mode: deployment
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.istio-system.svc.cluster.local:4317
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [otlp/tempo]

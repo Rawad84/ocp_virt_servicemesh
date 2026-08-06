@@ -2,3 +2,30 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: istio-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-cni
+---
+# Dedicated operator namespaces for Tempo, OpenTelemetry, and Grafana -- Red Hat's docs put
+# the Tempo and OpenTelemetry operators in their own openshift-* namespaces (not
+# openshift-operators), and Grafana (community operator, no fixed Red Hat default) follows
+# the same pattern for consistency. The Sail Operator and Kiali Operator still install into
+# the cluster's existing openshift-operators namespace per Red Hat's documented default (not
+# recreated here). Each of these namespaces needs its own AllNamespaces OperatorGroup --
+# see 05-operatorgroups.yaml.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-tempo-operator
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-opentelemetry-operator
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: grafana-operator

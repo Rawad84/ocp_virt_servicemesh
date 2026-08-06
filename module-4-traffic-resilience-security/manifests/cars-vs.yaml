@@ -3,7 +3,7 @@
 # this file as the desired state; use the script directly only for the live, manual
 # walkthrough of *changing* the split during Module 4.
 kind: VirtualService
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1
 metadata:
   name: cars
   namespace: travel-agency

@@ -1,11 +1,34 @@
-# Red Hat OpenShift Service Mesh (classic, Maistra-based v2.x API — the lab content
-# references `maistra.io/v1` ServiceMeshMember and a ServiceMeshControlPlane named
-# "basic", which is the classic architecture, not the newer Sail/Istio-native operator).
+# Red Hat OpenShift Service Mesh 3.4 (Sail Operator / Istio-native architecture — NOT the
+# classic Maistra-based v2.x operator). The control plane is managed via `sailoperator.io/v1`
+# `Istio`/`IstioCNI` custom resources (see 21-istio.yaml, 22-istiocni.yaml), not a
+# `ServiceMeshControlPlane`.
 #
-# These three operators (Kiali, distributed tracing/Jaeger, Service Mesh) are installed
-# cluster-wide into openshift-operators, matching Red Hat's documented install flow.
-# Verify channel names against the target cluster's OCP/OSSM compatibility matrix —
-# not validated against a live cluster.
+# Kiali, distributed tracing, and Grafana are no longer bundled as ServiceMeshControlPlane
+# addons in 3.x — each is its own operator/CR, installed here and configured in
+# 23-peer-authentication.yaml through 27-otel-collector.yaml.
+#
+# Sail Operator and Kiali install into openshift-operators (Red Hat's documented default,
+# already present on any OpenShift cluster). Tempo, OpenTelemetry, and Grafana each get their
+# own dedicated namespace (created in 00-namespaces.yaml, OperatorGroups in
+# 05-operatorgroups.yaml) per Red Hat's documented defaults for those operators, rather than
+# sharing openshift-operators.
+# Verify package/channel names against the target cluster's OperatorHub catalog before
+# applying — run `oc get packagemanifest -n openshift-marketplace | grep -Ei
+# 'servicemeshoperator3|kiali-ossm|tempo|opentelemetry|grafana'` first. Not validated against
+# a live cluster; channel names below (`stable`) are current as of this build but drift across
+# OSSM/OCP releases.
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: servicemeshoperator3
+  namespace: openshift-operators
+spec:
+  channel: stable
+  name: servicemeshoperator3
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -18,26 +41,46 @@ spec:
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
 ---
+# Red Hat build of OpenTelemetry — replaces the classic Jaeger addon's collection path.
+# Installed into its own namespace per Red Hat's documented default (not openshift-operators).
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: jaeger-product
-  namespace: openshift-operators
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
 spec:
   channel: stable
-  name: jaeger-product
+  name: opentelemetry-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
 ---
+# Red Hat Tempo Operator — the tracing backend (replaces the classic Jaeger addon's storage).
+# Installed into its own namespace per Red Hat's documented default (not openshift-operators).
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: servicemeshoperator
-  namespace: openshift-operators
+  name: tempo-product
+  namespace: openshift-tempo-operator
 spec:
   channel: stable
-  name: servicemeshoperator
+  name: tempo-product
   source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# Grafana Operator — community operator, since Red Hat doesn't productize one. The classic
+# SMCP `addons.grafana.enabled` field has no 3.x equivalent; a real Grafana instance is
+# deployed and wired to Prometheus/Tempo via the Grafana CR in 25-grafana.yaml. Installed into
+# its own namespace, consistent with Tempo/OpenTelemetry above.
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: grafana-operator
+  namespace: grafana-operator
+spec:
+  channel: v5
+  name: grafana-operator
+  source: community-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic

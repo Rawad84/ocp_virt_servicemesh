@@ -1,0 +1,19 @@
+# TempoMonolithic with in-memory storage -- the direct equivalent of the classic Jaeger
+# addon's `storage.type: Memory` (module-3's old tracing setup): ephemeral, no object-storage
+# dependency, appropriate for a lab rather than production trace retention.
+apiVersion: tempo.grafana.com/v1alpha1
+kind: TempoMonolithic
+metadata:
+  name: tempo
+  namespace: istio-system
+spec:
+  storage:
+    traces:
+      backend: memory
+      size: 2Gi
+  jaegerUI:
+    enabled: true
+    ingress:
+      enabled: false
+  multitenancy:
+    enabled: false

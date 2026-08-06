@@ -1,0 +1,10 @@
+# Apply alongside 21-istio.yaml -- IstioCNI is independent of the Istio control plane CR but
+# required for sidecar traffic redirection to work. sailoperator.io/v1 IstioCNI is
+# cluster-scoped; spec.namespace is where the CNI DaemonSet runs (kept separate from
+# istio-system per Red Hat's documented pattern).
+apiVersion: sailoperator.io/v1
+kind: IstioCNI
+metadata:
+  name: default
+spec:
+  namespace: istio-cni

@@ -2,7 +2,7 @@
 # from Module 5 onward this exact resource is owned by the travel-control Helm chart's
 # own ap-allow-selective-principals-travel-control.yaml template — excluded from Module
 # 5's GitOps Application for that reason.
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-selective-principals-travel-control

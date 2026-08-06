@@ -39,7 +39,7 @@ Open the ArgoCD dashboard (**OpenShift console → Applications icon (top nav) �
 
 Click into `travel-agency-bootstrap` (or any child) to see the resource tree — same exploration the official lab's Task 1 walks through, just against Applications this repo created rather than pre-existing ones.
 
-**Known overlaps, documented rather than hidden**: `travel-agency-service-mesh` (Module 3's `ServiceMeshMember` for `travel-control`) and `travel-control` both declare that same resource with identical content — harmless in practice (no drift, since the content matches) but not a perfectly clean 1-resource-1-owner split. Two `AuthorizationPolicy` files in Module 4 that were travel-control-scoped are excluded from `travel-agency-traffic-resilience`'s sync for the same reason — see the `exclude:` comments in `gitops/apps/04-traffic-resilience-app.yaml`.
+**Known overlaps, documented rather than hidden**: two `AuthorizationPolicy` files in Module 4 that were travel-control-scoped are excluded from `travel-agency-traffic-resilience`'s sync since `travel-control`'s Helm chart re-declares them — see the `exclude:` comments in `gitops/apps/04-traffic-resilience-app.yaml`. `travel-agency-service-mesh` (Module 3) currently has nothing to sync — OSSM 3.4's Sail Operator has no `ServiceMeshMember`-equivalent CR, so there's no mesh-membership resource for that Application to manage.
 
 **Not GitOps-managed, by design**: the `control-gateway` `Gateway` (istio-system) that Module 4's `expose-control-vm.sh` creates is shared mesh-ingress infrastructure, applied once imperatively — it isn't re-applied by any Application here. Module 2's `manifests/` (control-vm created directly, and the `VirtualMachinePool` scaling exercise) also stay outside GitOps — they were a one-time manual exercise, and `travel-control` supersedes their steady-state ownership from this module onward.
 
@@ -76,7 +76,7 @@ oc patch application travel-control -n openshift-gitops --type merge -p '{"spec"
 Delete some of its resources directly and watch ArgoCD put them back:
 
 ```sh
-oc delete authorizationpolicy,destinationrule,route,service,smm,virtualmachine,virtualservice -l module=m5 -n travel-control
+oc delete authorizationpolicy,destinationrule,route,service,virtualmachine,virtualservice -l module=m5 -n travel-control
 ```
 
 Within moments the ArgoCD dashboard should show `OutOfSync` → resources reappearing → `Synced`/`Healthy` again.

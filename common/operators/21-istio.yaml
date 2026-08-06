@@ -1,0 +1,16 @@
+# Apply only after the servicemeshoperator3 (Sail Operator) subscription in 20-service-mesh.yaml
+# has finished installing -- the Istio CRD won't exist until then.
+#
+# sailoperator.io/v1 Istio is cluster-scoped; spec.namespace is where the control plane
+# (istiod) actually gets deployed. `version` is intentionally left unset so the Sail Operator
+# picks its own default supported version -- pin an explicit version here once confirmed
+# against the live cluster (`oc get istio default -o yaml` after apply shows the resolved
+# version) if a specific patch is required for reproducibility.
+apiVersion: sailoperator.io/v1
+kind: Istio
+metadata:
+  name: default
+spec:
+  namespace: istio-system
+  updateStrategy:
+    type: InPlace

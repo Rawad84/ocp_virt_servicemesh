@@ -16,7 +16,7 @@ Everything here is **generated and reviewed manifest/code — none of it has bee
 - OpenShift cluster, cluster-admin access
 - OpenShift Virtualization — already installed on this build's target cluster (not covered by this repo)
 - OpenShift GitOps — already installed and already in use on this build's target cluster, with an existing `openshift-gitops` ArgoCD instance (not covered by this repo)
-- OpenShift Service Mesh, Kiali, distributed tracing — still need installing here; via `common/operators/` (see that folder's README)
+- OpenShift Service Mesh 3.4 (Sail Operator/Istio-native), Kiali, Grafana, distributed tracing (OpenTelemetry + Tempo) — still need installing here; via `common/operators/` (see that folder's README)
 
 ## Layout
 
@@ -25,7 +25,7 @@ common/operators/            cluster-admin prerequisites (see common/operators/R
 module-0-bootstrap/          stands up travel-agency VMs + travel-portal containers (not in the official lab)
 module-1-explore-vms/        Services, Routes, NetworkPolicy for the VMs
 module-2-scale-vms/          business dashboard VM, vertical/horizontal scaling
-module-3-service-mesh-observability/   join the mesh, Kiali/Jaeger/Grafana
+module-3-service-mesh-observability/   join the mesh, Kiali/Grafana/tracing (Tempo)
 module-4-traffic-resilience-security/  ingress gateway, canary release, circuit breaker, authz policies
 module-5-gitops/             ArgoCD-managed deployment of everything above
 module-6-self-service-provisioning/    Developer Hub self-service (documentation only — deferred, see that module's README)
@@ -38,8 +38,15 @@ Run modules 0 through 5 in order — each depends on resources created by the pr
 ```sh
 oc apply -f common/operators/00-namespaces.yaml
 oc apply -f common/operators/20-service-mesh.yaml
-# wait for the Service Mesh operators to finish installing, then:
-oc apply -f common/operators/21-service-mesh-control-plane.yaml
+# wait for the Sail/Kiali/OpenTelemetry/Tempo/Grafana operators to finish installing, then:
+oc apply -f common/operators/21-istio.yaml
+oc apply -f common/operators/22-istiocni.yaml
+# wait for Istio/IstioCNI to reach Ready, then:
+oc apply -f common/operators/23-peer-authentication.yaml
+oc apply -f common/operators/24-kiali.yaml
+oc apply -f common/operators/25-grafana.yaml
+oc apply -f common/operators/26-tempo.yaml
+oc apply -f common/operators/27-otel-collector.yaml
 
 # then work through each module's README.md in order:
 #   module-0-bootstrap/README.md

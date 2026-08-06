@@ -19,7 +19,7 @@ The official `lab-4/cars-vm-v2-a.yaml` and `cars-vm-v2-b.yaml` files ship with `
 # e.g. ./expose-control-vm.sh apps.mycluster.example.com
 ```
 
-This creates a `Gateway` (istio-system), `VirtualService`, and `DestinationRule` (travel-control) routing `istio-ingressgateway-istio-system.<domain>` to `control-vm`.
+**OSSM 3.4 note**: unlike the classic architecture, there's no auto-created `istio-ingressgateway` pod — the script now deploys one itself first (a `Deployment`+`Service` in `istio-system` using gateway injection, plus an OpenShift `Route` exposing it), then creates the `Gateway` (istio-system), `VirtualService`, and `DestinationRule` (travel-control) routing `istio-ingressgateway-istio-system.<domain>` to `control-vm`, same as before.
 
 ```sh
 curl -I http://istio-ingressgateway-istio-system.<your-cluster-apps-domain>/

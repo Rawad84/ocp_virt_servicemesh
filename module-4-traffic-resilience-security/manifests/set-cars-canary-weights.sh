@@ -7,7 +7,7 @@ TRAFFIC_V2=$2
 
 oc apply -f - <<EOF
 kind: VirtualService
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1
 metadata:
   name: cars
   namespace: travel-agency

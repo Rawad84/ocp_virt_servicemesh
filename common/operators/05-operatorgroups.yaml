@@ -1,0 +1,24 @@
+# openshift-operators already has a default AllNamespaces OperatorGroup out of the box, so
+# servicemeshoperator3/kiali-ossm (installed there) don't need one here. The three dedicated
+# namespaces created in 00-namespaces.yaml are new, though, and need an explicit OperatorGroup
+# with no targetNamespaces (= AllNamespaces install mode) before their operators can install.
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-tempo-operator
+  namespace: openshift-tempo-operator
+spec: {}
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-opentelemetry-operator
+  namespace: openshift-opentelemetry-operator
+spec: {}
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: grafana-operator
+  namespace: grafana-operator
+spec: {}

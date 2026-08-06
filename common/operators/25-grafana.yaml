@@ -1,0 +1,42 @@
+# Grafana Operator CR + a Prometheus (OpenShift user-workload monitoring / thanos-querier)
+# datasource. Replaces the classic ServiceMeshControlPlane addons.grafana.enabled field, which
+# has no equivalent in 3.x -- a real Grafana instance now has to be deployed and wired up.
+#
+# Istio dashboards (Mesh/Service/Workload, grafana.com IDs 7639/7636/7630) are not imported
+# here -- import them via GrafanaDashboard CRs (or the Grafana UI) as a Phase B follow-up once
+# the datasource below is confirmed working.
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: istio-system
+  labels:
+    dashboards: grafana
+spec:
+  config:
+    auth:
+      disable_login_form: "false"
+  route:
+    enabled: true
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: prometheus
+  namespace: istio-system
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasource:
+    name: Prometheus
+    type: prometheus
+    access: proxy
+    url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
+    isDefault: true
+    jsonData:
+      timeInterval: 30s
+      tlsSkipVerify: true
+      httpHeaderName1: Authorization
+    secureJsonData:
+      httpHeaderValue1: "Bearer ${TOKEN}"

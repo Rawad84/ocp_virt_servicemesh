@@ -1,7 +1,7 @@
 # Same DestinationRule as cars-dr.yaml, with a circuit breaker added to the v2 subset:
 # ejects an endpoint for 3 minutes after 1 consecutive 5xx error.
 kind: DestinationRule
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1
 metadata:
   name: cars
   namespace: travel-agency
