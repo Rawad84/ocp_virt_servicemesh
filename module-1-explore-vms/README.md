@@ -31,6 +31,14 @@ oc get svc -n travel-agency
 
 Each VM's app container (from Module 0) will now start succeeding — they were retrying against these exact Service hostnames since they came up.
 
+The `travel-portal` Deployments (`travels`/`viaggi`/`voyages`), however, were already crash-looping on a DNS failure before these Services existed (see Module 0's README) — a plain container restart-on-crash doesn't re-resolve DNS any faster, and `CrashLoopBackOff`'s exponential backoff can leave them down for several minutes even though the Service they need now exists. Force an immediate retry instead of waiting it out:
+
+```sh
+oc delete pods -n travel-portal -l 'app in (travels,viaggi,voyages)'
+```
+
+They should come up `1/1 Running` within ~20s.
+
 ## Task 3: Validate communication between VMs
 
 Per the official lab, do this from inside a `virt-launcher-*` VM pod's Terminal tab (**Workloads → Pods → virt-launcher-travels-vm-... → Terminal**), or from the VM's own guest console (**Virtualization → VirtualMachines → travels-vm → Console**, using the guest credentials):

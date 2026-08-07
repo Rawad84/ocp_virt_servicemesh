@@ -1,0 +1,61 @@
+# OSSM 3.x doesn't bundle its own Prometheus the way the classic ServiceMeshControlPlane's
+# addons did -- Kiali is meant to query OpenShift's own cluster monitoring instead. That
+# requires several things, none of which come from the Kiali/Sail/Grafana operators
+# automatically (confirmed live: without these, Kiali's /api/status shows no Prometheus
+# external service at all, its graph API returns zero nodes/edges, and its logs show
+# `Error getting Prometheus version: client_error: client error: 403`):
+#
+# 1. Enable OpenShift user-workload-monitoring (disabled by default) -- this is what runs the
+#    Prometheus instance thanos-querier actually proxies workload metrics from.
+# 2. A ServiceMonitor for istiod's own control-plane metrics (this file).
+# 3. A PodMonitor *per mesh namespace* for the istio-proxy sidecars' metrics -- see
+#    module-3-service-mesh-observability/manifests/istio-proxies-podmonitor.yaml, applied
+#    once those namespaces exist. NOT one cluster-wide PodMonitor here: OpenShift's
+#    user-workload-monitoring Prometheus hardcodes `ignoreNamespaceSelectors: true`
+#    (confirmed live -- `namespaceSelector: {any: true}` was silently discarded, verified via
+#    the generated scrape config always showing `namespaces: {names: [istio-system]}`
+#    regardless), a deliberate multi-tenancy security boundary, not a bug. Each mesh namespace
+#    needs its own PodMonitor.
+# 4. RBAC granting Kiali's service account permission to actually query thanos-querier
+#    (401/403 otherwise, confirmed live) -- the `cluster-monitoring-view` ClusterRole is
+#    OpenShift's standard role for exactly this.
+#
+# Enabling user-workload-monitoring (item 1) is NOT included as a resource in this file --
+# `cluster-monitoring-config` is a cluster-wide singleton ConfigMap that commonly already
+# exists with other settings (confirmed live: on a shared test cluster it was already
+# ArgoCD-managed with infra-node scheduling config for the whole monitoring stack).
+# Blindly `oc apply`-ing a fresh copy here would silently clobber all of that. Instead:
+#
+#   oc get configmap cluster-monitoring-config -n openshift-monitoring -o jsonpath='{.data.config\.yaml}' > /tmp/cmc.yaml
+#   # edit /tmp/cmc.yaml (or use yq/python) to add: enableUserWorkload: true
+#   oc patch configmap cluster-monitoring-config -n openshift-monitoring --type merge \
+#     --patch "{\"data\":{\"config.yaml\":\"$(cat /tmp/cmc.yaml | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}')\"}}"
+#
+# If the ConfigMap doesn't exist yet on your cluster at all, a plain apply of just
+# `{enableUserWorkload: true}` is safe -- only merge-and-patch when it's already there.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istiod-monitor
+  namespace: istio-system
+spec:
+  endpoints:
+    - interval: 30s
+      port: http-monitoring
+      scheme: http
+  selector:
+    matchLabels:
+      istio: pilot
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kiali-monitoring-rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: kiali-service-account
+    namespace: istio-system

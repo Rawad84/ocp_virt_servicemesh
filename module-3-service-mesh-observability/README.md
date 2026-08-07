@@ -10,8 +10,8 @@ No new app images in this module — it only adds the `istio-proxy` sidecar cont
 
 ```sh
 echo "https://$(oc get route kiali -o jsonpath='{.spec.host}' -n istio-system)"
-echo "https://$(oc get route grafana -o jsonpath='{.spec.host}' -n istio-system)"
-echo "https://$(oc get route -n istio-system -l app.kubernetes.io/instance=tempo -o jsonpath='{.items[0].spec.host}')"   # Tempo's Jaeger-compatible UI
+echo "https://$(oc get route grafana-route -o jsonpath='{.spec.host}' -n istio-system)"
+echo "https://$(oc get route tempo-tempo-jaegerui -o jsonpath='{.spec.host}' -n istio-system)"   # Tempo's Jaeger-compatible UI, behind oauth-proxy — log in with your cluster credentials
 ```
 
 Log into each with your cluster admin credentials. All three will show no services/traces yet — expected, since nothing is in the mesh until Task 2.
@@ -26,13 +26,23 @@ Inject the `istio-proxy` sidecar into every workload:
 ./module-3-service-mesh-observability/manifests/add-envoy-to-travel-control.sh
 ```
 
+Also apply the `PodMonitor`s so Prometheus actually scrapes the new sidecars' metrics — without these, Kiali's graph stays empty even though the mesh itself works fine:
+
+```sh
+oc apply -f module-3-service-mesh-observability/manifests/istio-proxies-podmonitor.yaml
+```
+
+(Requires `common/operators/28-monitoring-integration.yaml` and OpenShift user-workload-monitoring already applied — see that file's header comment.)
+
 Each pod should now show 2 containers instead of 1 (the workload + `istio-proxy`):
 
 ```sh
 oc get pods -n travel-agency -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
 ```
 
-**Note on `add-envoy-to-travel-control.sh`**: adapted from the official script to loop over *all* VMs currently in `travel-control` (not just the first one found) — this way it works whether Module 2 left you with a single `control-vm` or a `VirtualMachinePool`'s replicas.
+**Note on `add-envoy-to-travel-control.sh`**: adapted from the official script to loop over *all* VMs currently in `travel-control` (not just the first one found) — this way it works whether Module 2 left you with a single `control-vm` or a `VirtualMachinePool`'s replicas. Also patches both the `sidecar.istio.io/inject` **annotation and label** — the injection webhook's `objectSelector` only matches on the label, so annotation-only would silently produce zero sidecars (confirmed live: the pod comes up `1/1`, not `2/2`, with no error of any kind).
+
+**Expect the `travels-vm` Route (Module 1) and the `travel-control` dashboard Route (Module 2) to both start returning `502` right after this task.** This is expected, not a bug: the mesh-wide `PeerAuthentication` (`common/operators/23-peer-authentication.yaml`) enforces `STRICT` mTLS, and OpenShift's Router isn't part of the mesh — once a workload has a sidecar, plain-HTTP traffic hitting it directly via a Route (bypassing the mesh's own ingress gateway) gets rejected. This resolves in [Module 4](../module-4-traffic-resilience-security/README.md), which exposes `travel-control` through the mesh's own `Gateway`/`VirtualService` instead of a direct Route.
 
 ## Task 3: Validate the mesh in Kiali / Grafana / Tempo
 

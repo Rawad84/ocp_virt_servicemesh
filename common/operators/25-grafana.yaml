@@ -5,6 +5,14 @@
 # Istio dashboards (Mesh/Service/Workload, grafana.com IDs 7639/7636/7630) are not imported
 # here -- import them via GrafanaDashboard CRs (or the Grafana UI) as a Phase B follow-up once
 # the datasource below is confirmed working.
+#
+# Note: `spec.route` has no top-level `enabled` field (confirmed via `oc explain
+# grafana.spec.route` on a live cluster) -- it silently creates no Route without error unless
+# `spec.route.spec.to.name` names the target Service explicitly. Also, `port.targetPort` must
+# match the *Service's* port name (from its Endpoints object), not the pod's container port
+# name -- the Grafana Service names its port `grafana` even though the underlying container
+# port is named `grafana-http`; using the container's port name here causes silent 503s
+# (router can't resolve the named port against the Endpoints list), confirmed live.
 apiVersion: grafana.integreatly.org/v1beta1
 kind: Grafana
 metadata:
@@ -17,7 +25,14 @@ spec:
     auth:
       disable_login_form: "false"
   route:
-    enabled: true
+    spec:
+      to:
+        name: grafana-service
+      port:
+        targetPort: grafana
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDatasource

@@ -11,6 +11,7 @@ echo
 for vm in $(oc get VirtualMachine -n travel-control -o jsonpath='{.items[*].metadata.name}'); do
   echo "$vm"
   oc patch VirtualMachine/$vm --type=merge -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject": "true"}}}}}' -n travel-control
+  oc patch VirtualMachine/$vm --type=merge -p '{"spec":{"template":{"metadata":{"labels":{"sidecar.istio.io/inject": "true"}}}}}' -n travel-control
   oc delete pods -l vm.kubevirt.io/name=$vm -n travel-control
 done
 

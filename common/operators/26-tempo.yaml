@@ -1,6 +1,11 @@
 # TempoMonolithic with in-memory storage -- the direct equivalent of the classic Jaeger
 # addon's `storage.type: Memory` (module-3's old tracing setup): ephemeral, no object-storage
 # dependency, appropriate for a lab rather than production trace retention.
+#
+# Note: the CRD field is lowercase `jaegerui` (confirmed via `oc explain tempomonolithic.spec`
+# on a live cluster) -- `jaegerUI` silently gets pruned by schema validation with no error,
+# leaving the Jaeger UI/route uncreated. `route.enabled: true` is required explicitly; there's
+# no top-level `jaegerui.enabled` shortcut that also creates the Route.
 apiVersion: tempo.grafana.com/v1alpha1
 kind: TempoMonolithic
 metadata:
@@ -11,9 +16,11 @@ spec:
     traces:
       backend: memory
       size: 2Gi
-  jaegerUI:
+  jaegerui:
     enabled: true
     ingress:
       enabled: false
+    route:
+      enabled: true
   multitenancy:
     enabled: false
