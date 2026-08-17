@@ -5,6 +5,67 @@ A from-scratch, deployable implementation of the RHPDS *"OpenShift Virtualizatio
 Source lab: https://rhpds.github.io/virt-ossm-showroom/modules/main/intro/intro.html
 Upstream demo app: https://kiali.io/docs/tutorials/travels/ (images: `quay.io/kiali/demo_travels_*`)
 
+## Architecture
+
+Each VM (`module-0-bootstrap/vms/`) is a plain Fedora guest running one app container via a Podman Quadlet (`cars.service`, `travels.service`, etc. — see [module-0's README](module-0-bootstrap/README.md#how-the-vms-run-their-app-container)). The arrows below are calls made over the Kubernetes `Service` hostnames that [Module 1](module-1-explore-vms/README.md) creates for each VM's `virt-launcher` pod.
+
+```mermaid
+graph TD
+    routeTravels(["Route: travels-vm<br/>(external, direct API test)"])
+    routeControl(["Route / Istio Gateway: control-vm<br/>(external, business dashboard)"])
+
+    subgraph travel-control namespace
+        controlVM["control-vm<br/>(traffic simulator, :8080)"]
+    end
+
+    subgraph travel-portal namespace
+        voyages["voyages.fr<br/>Deployment"]
+        viaggi["viaggi.it<br/>Deployment"]
+        travelsUK["travels.uk<br/>Deployment"]
+    end
+
+    subgraph travel-agency namespace
+        travelsVM["travels-vm<br/>(aggregator, :8000)"]
+        flightsVM["flights-vm<br/>(:8000)"]
+        hotelsVM["hotels-vm<br/>(:8000)"]
+        carsVM["cars-vm<br/>(:8000)"]
+        insurancesVM["insurances-vm<br/>(:8000)"]
+        discountsVM["discounts-vm<br/>(:8000)"]
+        mysqldbVM[("mysqldb-vm<br/>(:3306)")]
+    end
+
+    routeControl --> controlVM
+    controlVM -- "traffic-ratio<br/>sliders pick one" --> voyages
+    controlVM --> viaggi
+    controlVM --> travelsUK
+
+    voyages --> travelsVM
+    viaggi --> travelsVM
+    travelsUK --> travelsVM
+    routeTravels --> travelsVM
+
+    travelsVM --> flightsVM
+    travelsVM --> hotelsVM
+    travelsVM --> carsVM
+    travelsVM --> insurancesVM
+
+    flightsVM --> discountsVM
+    flightsVM --> mysqldbVM
+    hotelsVM --> discountsVM
+    hotelsVM --> mysqldbVM
+    carsVM --> discountsVM
+    carsVM --> mysqldbVM
+    insurancesVM --> discountsVM
+    insurancesVM --> mysqldbVM
+```
+
+- **Flow A — direct API test**: external Route → `travels-vm` directly (Module 1), bypassing the storefronts/dashboard entirely.
+- **Flow B — business dashboard**: external Route (Module 2) or Istio Gateway (Module 4) → `control-vm` → one storefront (`voyages.fr`/`viaggi.it`/`travels.uk`, chosen per the dashboard's traffic-ratio sliders) → `travels-vm`.
+- `travels-vm` is the aggregator — no data of its own, just fans out to `flights-vm`/`hotels-vm`/`cars-vm`/`insurances-vm` and merges their responses into one quote.
+- `flights-vm`, `hotels-vm`, `cars-vm`, `insurances-vm` each call `discounts-vm` and read/write `mysqldb-vm`.
+- `discounts-vm` and `mysqldb-vm` are leaf nodes — nothing downstream of them.
+- Not shown: the mesh sidecars, canary (`cars-vm-v2-a`/`-b`) routing, and authz policies added in modules 3–4, and the GitOps layer (ArgoCD) that manages all of this from Module 5 on.
+
 ## How this differs from the official lab
 
 The official lab's Module 1 assumes the `travel-agency` namespace and its VMs are already running. This repo adds **Module 0** to stand that up first — namespaces, the 7 travel-agency VMs, and the 3 travel-portal containers — using the exact same images, env vars, and cloud-init/VM patterns the rest of the lab already establishes in modules 2–5, cross-checked against the upstream `kiali/demos` repo's `travel_agency.yaml` / `travel_portal.yaml` / `travel_control.yaml`.
