@@ -3,9 +3,31 @@
 # it's a standalone kiali.io/v1alpha1 Kiali CR.
 #
 # external_services.grafana/tracing URLs below assume the Grafana (25-grafana.yaml) and Tempo
-# (26-tempo.yaml) service names created by this build -- confirm exact service hostnames
-# against the live cluster (`oc get svc -n istio-system`) before relying on the Kiali UI's
-# Grafana/tracing deep links.
+# (26-tempo.yaml) service names created by this build. Confirmed live: the Tempo Operator
+# double-prefixes generated resources with the CR name (CR named "tempo" -> Service
+# "tempo-tempo", Route "tempo-tempo-jaegerui"), not the single "tempo-<component>" naming the
+# upstream docs suggest -- verify against `oc get svc -n istio-system` if the CR is renamed.
+#
+# spec.deployment.custom_secrets/custom_envs below: only needed on clusters where the
+# *.apps wildcard route certificate (including oauth-openshift) is signed by a custom/internal
+# CA rather than a publicly-trusted one -- confirmed live on a customer cluster via Kiali logs:
+# `Unable to exchange the code for a token: ... tls: failed to verify certificate: x509:
+# certificate signed by unknown authority`. The OpenShift OAuth login page itself works (the
+# browser trusts the CA via its own OS/corporate trust store); it's specifically the Kiali
+# pod's server-to-server token exchange call to oauth-openshift that fails, because Kiali's
+# container only ships public root CAs. Confirmed via `oc get proxy cluster -o yaml` showing
+# `spec.trustedCA.name: user-ca-bundle` and Kiali's Deployment having no CA-bundle volume at
+# all. Not needed if the cluster's *.apps routes use a publicly-trusted certificate.
+#
+# One-time setup per cluster (creates cluster state, not committed here since the CA bundle
+# is cluster-specific):
+#   oc create configmap kiali-trusted-ca-bundle -n istio-system
+#   oc label configmap kiali-trusted-ca-bundle -n istio-system config.openshift.io/inject-trusted-cabundle=true
+#   # wait a few seconds for the Cluster Network Operator to populate it, then confirm:
+#   oc get configmap kiali-trusted-ca-bundle -n istio-system -o jsonpath='{.data.ca-bundle\.crt}' | head -5
+#   # copy into a Secret -- custom_secrets below mounts Secrets, not ConfigMaps:
+#   oc get configmap kiali-trusted-ca-bundle -n istio-system -o jsonpath='{.data.ca-bundle\.crt}' > /tmp/ca-bundle.crt
+#   oc create secret generic kiali-trusted-ca-bundle -n istio-system --from-file=ca-bundle.crt=/tmp/ca-bundle.crt
 apiVersion: kiali.io/v1alpha1
 kind: Kiali
 metadata:
@@ -17,6 +39,14 @@ spec:
     strategy: openshift
   deployment:
     ingress_enabled: true
+    # Uncomment on clusters where *.apps routes use a custom/internal CA -- see header comment
+    # for the one-time `kiali-trusted-ca-bundle` ConfigMap/Secret setup this depends on.
+    # custom_secrets:
+    #   - name: kiali-trusted-ca-bundle
+    #     mount: /kiali-override-ca
+    # custom_envs:
+    #   - name: SSL_CERT_FILE
+    #     value: /kiali-override-ca/ca-bundle.crt
   external_services:
     istio:
       component_status:
@@ -34,5 +64,5 @@ spec:
     tracing:
       enabled: true
       provider: tempo
-      internal_url: http://tempo-query-frontend.istio-system:3200
+      internal_url: http://tempo-tempo.istio-system:3200
       use_grpc: false
